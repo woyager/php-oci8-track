@@ -1749,7 +1749,7 @@ void php_oci_do_connect(INTERNAL_FUNCTION_PARAMETERS, int persistent, int exclus
 		RETURN_FALSE;
 	}
 
-       if (strncmp(sapi_module.name,"apache",5)==0){
+       if (strncmp(sapi_module.name,"apache",5)==0 || strncmp(sapi_module.name,"fpm",3)==0){
                char* hostname = sapi_getenv("HTTP_HOST", 512 TSRMLS_CC);
                char* uri = sapi_getenv("REQUEST_URI", 512 TSRMLS_CC);
                char* reqid = sapi_getenv("HTTP_X_REQUEST_ID", 512 TSRMLS_CC);
