@@ -1749,7 +1749,7 @@ void php_oci_do_connect(INTERNAL_FUNCTION_PARAMETERS, int persistent, int exclus
 		RETURN_FALSE;
 	}
 
-       if (strncmp(sapi_module.name,"apache",5)==0 || strncmp(sapi_module.name,"fpm",3)==0){
+       if (strncmp(sapi_module.name,"apache",5)==0){
                char* hostname = sapi_getenv("HTTP_HOST", 512 TSRMLS_CC);
                char* uri = sapi_getenv("REQUEST_URI", 512 TSRMLS_CC);
                char* reqid = sapi_getenv("HTTP_X_REQUEST_ID", 512 TSRMLS_CC);
@@ -1760,6 +1760,38 @@ void php_oci_do_connect(INTERNAL_FUNCTION_PARAMETERS, int persistent, int exclus
                if (reqid)
                        PHP_OCI_CALL_RETURN(OCI_G(errcode), OCIAttrSet, ((dvoid *) connection->session, (ub4) OCI_HTYPE_SESSION, (dvoid *) reqid, (ub4) strlen(reqid), (ub4) OCI_ATTR_CLIENT_INFO, OCI_G(err)));
        }
+
+       if (strncmp(sapi_module.name,"fpm",3)==0){
+                        if (!zend_hash_exists(&EG(symbol_table),"_SERVER",8)){
+                                zend_auto_global* auto_global;
+                                if (zend_hash_find(CG(auto_globals),"_SERVER",8,(void**)&auto_global)!=FAILURE){
+                                        auto_global->armed = auto_global->auto_global_callback(auto_global->name,auto_global->name_len TSRMLS_CC);
+                                }
+                        }
+                        zval **server_pp;
+                        zval **value_pp;
+                        if (zend_hash_find(&EG(symbol_table),"_SERVER",8,(void**)&server_pp)!=FAILURE){
+                                char* hostname = NULL;
+                                char* uri = NULL;
+                                char* reqid = NULL;
+                                if(zend_hash_find(Z_ARRVAL_PP(server_pp),"HTTP_HOST",10,(void**)&value_pp)!=FAILURE){
+                                        hostname = Z_STRVAL_PP(value_pp);
+                                }
+                                if(zend_hash_find(Z_ARRVAL_PP(server_pp),"REQUEST_URI",12,(void**)&value_pp)!=FAILURE){
+                                        uri = Z_STRVAL_PP(value_pp);
+                                }
+                                if(zend_hash_find(Z_ARRVAL_PP(server_pp),"HTTP_X_REQUEST_ID",18,(void**)&value_pp)!=FAILURE){
+                                        reqid = Z_STRVAL_PP(value_pp);
+                                }
+	        	       if (hostname)
+        	        	       PHP_OCI_CALL_RETURN(OCI_G(errcode), OCIAttrSet, ((dvoid *) connection->session, (ub4) OCI_HTYPE_SESSION, (dvoid *) hostname, (ub4) strlen(hostname), (ub4) OCI_ATTR_MODULE, OCI_G(err)));
+		               if (uri)
+                		       PHP_OCI_CALL_RETURN(OCI_G(errcode), OCIAttrSet, ((dvoid *) connection->session, (ub4) OCI_HTYPE_SESSION, (dvoid *) uri, (ub4) strlen(uri), (ub4) OCI_ATTR_ACTION, OCI_G(err)));
+		               if (reqid)
+		                       PHP_OCI_CALL_RETURN(OCI_G(errcode), OCIAttrSet, ((dvoid *) connection->session, (ub4) OCI_HTYPE_SESSION, (dvoid *) reqid, (ub4) strlen(reqid), (ub4) OCI_ATTR_CLIENT_INFO, OCI_G(err)));
+                        }
+        }
+
 
 	RETURN_RESOURCE(connection->rsrc_id);
 
